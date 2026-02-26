@@ -4,7 +4,7 @@
   window.__fendixFormTrackingLoaded = true;
 
   function initFendixFormTracking() {
-    console.log('start_next-gen-fendix-nick_script');
+    console.log('start_next-gen-fendix-nick_script_v1');
 
     window.dataLayer = window.dataLayer || [];
 
