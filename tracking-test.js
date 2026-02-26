@@ -102,7 +102,7 @@
       }
     }
 
-    console.log('end_next-gen-fendix-nick_script');
+    console.log('end_next-gen-fendix-nick_script_v2');
   }
 
   // Ensure DOM is ready before running
