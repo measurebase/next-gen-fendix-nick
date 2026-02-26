@@ -48,7 +48,7 @@
         if (started) return;
         started = true;
 
-        pushEvent('form_start', {
+        pushEvent('webflow_form_start', {
           form_id: formId,
           form_name: formName,
           page_path: pagePath
@@ -64,7 +64,7 @@
           setSubmitted(submitted);
         }
 
-        pushEvent('form_submit', {
+        pushEvent('webflow_form_submit', {
           form_id: formId,
           form_name: formName,
           is_first_submit: isFirst,
