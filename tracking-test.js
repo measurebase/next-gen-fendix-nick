@@ -4,8 +4,6 @@
   window.__fendixFormTrackingLoaded = true;
 
   function initFendixFormTracking() {
-    console.log('start_next-gen-fendix-nick_script_v3');
-
     window.dataLayer = window.dataLayer || [];
 
     var pagePath = (window.page && window.page.path) ? window.page.path : window.location.pathname;
@@ -125,8 +123,6 @@
         });
       }
     }
-
-    console.log('end_next-gen-fendix-nick_script_v2');
   }
 
   // Ensure DOM is ready before running
