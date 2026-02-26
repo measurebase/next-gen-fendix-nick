@@ -1,86 +1,59 @@
 (function () {
-  // --- run-once guard (prevents double execution across GTM/Webflow duplicates) ---
-  if (window.__fendixFormTrackingLoaded) {
-    return;
-  }
+  // If the file gets included twice, this prevents doing anything on the 2nd load
+  if (window.__fendixFormTrackingLoaded) return;
   window.__fendixFormTrackingLoaded = true;
 
   console.log('start_next-gen-fendix-nick_script');
 
-  // --- dataLayer safety ---
   window.dataLayer = window.dataLayer || [];
 
-  // --- safe page helpers (in case `page` doesn't exist) ---
-  const pagePath = (window.page && window.page.path) ? window.page.path : window.location.pathname;
-  const pageType = (window.page && window.page.type) ? window.page.type : undefined;
+  // Safe page vars (don’t assume `page` exists)
+  var pagePath = (window.page && window.page.path) ? window.page.path : window.location.pathname;
+  var pageType = (window.page && window.page.type) ? window.page.type : undefined;
 
-  // --- simple localStorage wrapper (replaces your `storage.get/set` safely) ---
-  const storageKey = '__fendix_forms_submitted';
-  const getSubmitted = () => {
+  function pushEvent(eventName, params) {
     try {
-      const raw = window.localStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : [];
+      window.dataLayer.push(Object.assign({ event: eventName }, params || {}));
+    } catch (e) {}
+  }
+
+  // localStorage wrapper (don’t assume `storage` exists)
+  var storageKey = '__fendix_forms_submitted';
+  function getSubmitted() {
+    try {
+      var raw = window.localStorage.getItem(storageKey);
+      var parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
-  };
-  const setSubmitted = (arr) => {
+  }
+  function setSubmitted(arr) {
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(arr));
-    } catch (e) {
-      // ignore storage failures (privacy mode etc.)
-    }
-  };
+    } catch (e) {}
+  }
 
-  // --- push helper ---
-  const pushEvent = (eventName, params) => {
-    try {
-      window.dataLayer.push({
-        event: eventName,
-        ...params
+  // Track all forms
+  document.querySelectorAll('form').forEach(function (form, i) {
+    var formId = form.id || form.getAttribute('data-name') || form.getAttribute('name') || ('form-' + i);
+    var formName = form.getAttribute('data-name') || form.getAttribute('name') || ('Form ' + (i + 1));
+    var started = false;
+
+    form.addEventListener('focusin', function () {
+      if (started) return;
+      started = true;
+
+      pushEvent('form_start', {
+        form_id: formId,
+        form_name: formName,
+        page_path: pagePath
       });
-    } catch (e) {
-      // avoid breaking the page if dataLayer is blocked
-      console.warn('dataLayer push failed', e);
-    }
-  };
+    }, { once: true });
 
-  // --- Form listeners ---
-  document.querySelectorAll('form').forEach((form, i) => {
-    const formId =
-      form.id ||
-      form.getAttribute('data-name') ||
-      form.getAttribute('name') ||
-      `form-${i}`;
-
-    const formName =
-      form.getAttribute('data-name') ||
-      form.getAttribute('name') ||
-      `Form ${i + 1}`;
-
-    let started = false;
-
-    // Form start (first interaction)
-    form.addEventListener(
-      'focusin',
-      () => {
-        if (started) return;
-        started = true;
-
-        pushEvent('form_start', {
-          form_id: formId,
-          form_name: formName,
-          page_path: pagePath
-        });
-      },
-      { once: true }
-    );
-
-    // Form submit
-    form.addEventListener('submit', () => {
-      const submitted = getSubmitted();
-      const isFirst = !submitted.includes(formId);
+    form.addEventListener('submit', function () {
+      var submitted = getSubmitted();
+      var isFirst = submitted.indexOf(formId) === -1;
 
       if (isFirst) {
         submitted.push(formId);
@@ -97,32 +70,23 @@
     });
   });
 
-  // --- Webflow success message observer ---
-  // Use a uniquely named global reference so redeclarations never happen.
-  // If some other script uses `const observer = ...` at top-level, it won’t affect this.
-  window.__fendixFormSuccessObserver = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      m.addedNodes.forEach((node) => {
-        if (
-          node &&
-          node.nodeType === 1 &&
-          node.classList &&
-          node.classList.contains('w-form-done')
-        ) {
-          pushEvent('form_success', {
-            page_path: pagePath
-          });
-        }
+  // Webflow success message observer
+  // Put observer on window so it can’t be redeclared as a const/let
+  if (!window.__fendixFormSuccessObserver) {
+    window.__fendixFormSuccessObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node && node.nodeType === 1 && node.classList && node.classList.contains('w-form-done')) {
+            pushEvent('form_success', { page_path: pagePath });
+          }
+        });
       });
     });
-  });
 
-  document.querySelectorAll('.w-form').forEach((wrapper) => {
-    window.__fendixFormSuccessObserver.observe(wrapper, {
-      childList: true,
-      subtree: true
+    document.querySelectorAll('.w-form').forEach(function (wrapper) {
+      window.__fendixFormSuccessObserver.observe(wrapper, { childList: true, subtree: true });
     });
-  });
+  }
 
   console.log('end_next-gen-fendix-nick_script');
 })();
