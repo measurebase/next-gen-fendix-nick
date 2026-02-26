@@ -56,20 +56,44 @@
       }, { once: true });
 
       form.addEventListener('submit', function () {
+        var fields = {};
+        Array.prototype.forEach.call(form.elements, function (el) {
+          if (!el.name && !el.getAttribute('data-name')) return;
+          if (el.type === 'password') return; // skip passwords
+          if (el.type === 'hidden') return; // optional: skip hidden
+          if (el.type === 'checkbox' || el.type === 'radio') {
+            if (!el.checked) return;
+          }
+      
+          var key = el.getAttribute('data-name') || el.name;
+          var value = el.value;
+      
+          // Handle multiple values (e.g. checkboxes with same name)
+          if (fields.hasOwnProperty(key)) {
+            if (!Array.isArray(fields[key])) {
+              fields[key] = [fields[key]];
+            }
+            fields[key].push(value);
+          } else {
+            fields[key] = value;
+          }
+        });
+      
         var submitted = getSubmitted();
         var isFirst = submitted.indexOf(formId) === -1;
-
+      
         if (isFirst) {
           submitted.push(formId);
           setSubmitted(submitted);
         }
-
+      
         pushEvent('webflow_form_submit', {
           form_id: formId,
           form_name: formName,
           is_first_submit: isFirst,
           page_path: pagePath,
-          page_type: pageType
+          page_type: pageType,
+          form_fields: fields
         });
       });
     });
